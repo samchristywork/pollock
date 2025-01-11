@@ -65,3 +65,145 @@ void drip(float x, float y, float len, uint8_t r, uint8_t g, uint8_t b) {
     stamp(x + sinf(dy * 0.3f + wobble) * 1.5f, y + dy, rad, r, g, b, alpha);
   }
 }
+
+typedef struct {
+  uint8_t r, g, b;
+} Color;
+
+const Color palette[] = {
+    {20, 16, 12},    {20, 16, 12},    {20, 16, 12},
+    {242, 238, 228}, {210, 158, 18},  {140, 28, 22},
+    {25, 55, 100},   {148, 140, 130}, {88, 55, 28},
+};
+#define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
+
+void paint_stroke(void) {
+  Color c = palette[rand() % N_COLORS];
+  uint8_t r = c.r, g = c.g, b = c.b;
+  float x, y, angle;
+
+  // 65% traversal strokes crossing the canvas, 35% freeform arcs
+  if (rand() % 20 < 13) {
+    int edge = rand() % 4;
+
+    // Wide angle spread for variety
+    float spread = frange(0.3f, 1.1f);
+    if (edge == 0) {
+      x = frange(-15, 5);
+      y = frand() * HEIGHT;
+      angle = frange(-spread, spread);
+    } else if (edge == 1) {
+      x = frange(WIDTH - 5, WIDTH + 15);
+      y = frand() * HEIGHT;
+      angle = (float)M_PI + frange(-spread, spread);
+    } else if (edge == 2) {
+      x = frand() * WIDTH;
+      y = frange(-15, 5);
+      angle = (float)M_PI / 2.0f + frange(-spread, spread);
+    } else {
+      x = frand() * WIDTH;
+      y = frange(HEIGHT - 5, HEIGHT + 15);
+      angle = -(float)M_PI / 2.0f + frange(-spread, spread);
+    }
+  } else {
+    x = frand() * WIDTH;
+    y = frand() * HEIGHT;
+    angle = frand() * 2.0f * (float)M_PI;
+  }
+
+  float speed = frange(4.0f, 12.0f);
+  float angular_vel = 0.0f;
+
+  // Mix of thin drips, medium lines, and occasional thick blobs
+  float base_rad;
+  int tier = rand() % 10;
+  if (tier < 5) {
+    // Thin drips
+    base_rad = frange(0.5f, 1.8f);
+  } else if (tier < 8) {
+    // Medium lines
+    base_rad = frange(1.8f, 4.5f);
+  } else {
+    // Thick blobs
+    base_rad = frange(4.5f, 9.0f);
+  }
+
+  // sine oscillators for organic waviness
+  float f1 = frange(0.002f, 0.008f), p1 = frand() * 2.0f * (float)M_PI,
+        a1 = frange(0.006f, 0.025f);
+  float f2 = frange(0.008f, 0.030f), p2 = frand() * 2.0f * (float)M_PI,
+        a2 = frange(0.002f, 0.010f);
+
+  float target_angle = angle;
+  // Varied: loose allows wide arcs, tight keeps straight
+  float spring_k = frange(0.002f, 0.030f);
+
+  // Steps sized to cross the canvas roughly 1–2 times
+  float diag = sqrtf(WIDTH * WIDTH + HEIGHT * HEIGHT);
+  int steps = (int)(diag / speed * frange(0.8f, 2.2f));
+
+  for (int i = 0; i < steps; i++) {
+    float rad = base_rad + sinf(i * 0.04f) * base_rad * 0.4f;
+    rad = fmaxf(0.3f, rad);
+    float alpha = frange(0.55f, 0.95f);
+
+    if (rand() % 60 == 0) {
+      stamp(x, y, rad * frange(2.0f, 4.5f), r, g, b, alpha * 0.5f);
+    }
+
+    stamp(x, y, rad, r, g, b, alpha);
+
+    if (rand() % 25 == 0) {
+      splatter(x, y, frange(8, 30), r, g, b, 2 + rand() % 6);
+    }
+
+    if (rand() % 45 == 0) {
+      drip(x, y, frange(15, 60), r, g, b);
+    }
+
+    // Spring pulls back toward target_angle, oscillators add organic waviness
+    float err = angle - target_angle;
+    while (err > (float)M_PI) {
+      err -= 2.0f * (float)M_PI;
+    }
+
+    while (err < -(float)M_PI) {
+      err += 2.0f * (float)M_PI;
+    }
+
+    // Target slowly drifts
+    target_angle += frange(-0.0015f, 0.0015f);
+
+    angular_vel += -err * spring_k + a1 * sinf(i * f1 + p1) +
+                   a2 * sinf(i * f2 + p2) + frange(-0.003f, 0.003f);
+    angular_vel *= 0.82f;
+    if (angular_vel > 0.12f) {
+      angular_vel = 0.12f;
+    }
+
+    if (angular_vel < -0.12f) {
+      angular_vel = -0.12f;
+    }
+    angle += angular_vel;
+
+    x += cosf(angle) * speed;
+    y += sinf(angle) * speed;
+
+    // Wrap so strokes can re-enter from the opposite edge
+    if (x < -100) {
+      x += WIDTH + 200;
+    }
+
+    if (x > WIDTH + 100) {
+      x -= WIDTH + 200;
+    }
+
+    if (y < -100) {
+      y += HEIGHT + 200;
+    }
+
+    if (y > HEIGHT + 100) {
+      y -= HEIGHT + 200;
+    }
+  }
+}

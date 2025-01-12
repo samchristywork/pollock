@@ -207,3 +207,32 @@ void paint_stroke(void) {
     }
   }
 }
+
+int main(void) {
+  srand((unsigned)time(NULL));
+
+  // Linen/canvas background
+  for (int i = 0; i < HEIGHT * WIDTH; i++) {
+    canvas[i * 3] = 237;
+    canvas[i * 3 + 1] = 232;
+    canvas[i * 3 + 2] = 218;
+  }
+
+  for (int s = 0; s < N_STROKES; s++) {
+    paint_stroke();
+  }
+
+  png_image img;
+  memset(&img, 0, sizeof img);
+  img.version = PNG_IMAGE_VERSION;
+  img.format = PNG_FORMAT_RGB;
+  img.width = WIDTH;
+  img.height = HEIGHT;
+
+  if (!png_image_write_to_file(&img, "pollock.png", 0, canvas, 0, NULL)) {
+    fprintf(stderr, "Failed to write PNG: %s\n", img.message);
+    return EXIT_FAILURE;
+  }
+
+  png_image_free(&img);
+}

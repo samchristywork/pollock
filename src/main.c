@@ -10,9 +10,20 @@
 #define HEIGHT 1600
 #define N_STROKES 420
 
-uint8_t canvas[HEIGHT * WIDTH * 3];
+typedef struct {
+  uint8_t r, g, b;
+} Color;
 
-float frand(void) { return rand() / (float)RAND_MAX; }
+const Color palette[] = {
+    {20, 16, 12},    {20, 16, 12},    {20, 16, 12},
+    {242, 238, 228}, {210, 158, 18},  {140, 28, 22},
+    {25, 55, 100},   {148, 140, 130}, {88, 55, 28},
+};
+#define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
+
+Color canvas[HEIGHT * WIDTH];
+
+float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
 
 void blend_px(int x, int y, uint8_t r, uint8_t g, uint8_t b, float a) {
@@ -20,10 +31,10 @@ void blend_px(int x, int y, uint8_t r, uint8_t g, uint8_t b, float a) {
     return;
   }
 
-  uint8_t *p = &canvas[(y * WIDTH + x) * 3];
-  p[0] = (uint8_t)(p[0] * (1.0f - a) + r * a);
-  p[1] = (uint8_t)(p[1] * (1.0f - a) + g * a);
-  p[2] = (uint8_t)(p[2] * (1.0f - a) + b * a);
+  Color *c = &canvas[y * WIDTH + x];
+  c->r = (uint8_t)(c->r * (1.0f - a) + r * a);
+  c->g = (uint8_t)(c->g * (1.0f - a) + g * a);
+  c->b = (uint8_t)(c->b * (1.0f - a) + b * a);
 }
 
 void stamp(float cx, float cy, float rad, uint8_t r, uint8_t g, uint8_t b,
@@ -66,18 +77,7 @@ void drip(float x, float y, float len, uint8_t r, uint8_t g, uint8_t b) {
   }
 }
 
-typedef struct {
-  uint8_t r, g, b;
-} Color;
-
-const Color palette[] = {
-    {20, 16, 12},    {20, 16, 12},    {20, 16, 12},
-    {242, 238, 228}, {210, 158, 18},  {140, 28, 22},
-    {25, 55, 100},   {148, 140, 130}, {88, 55, 28},
-};
-#define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
-
-void paint_stroke(void) {
+void paint_stroke() {
   Color c = palette[rand() % N_COLORS];
   uint8_t r = c.r, g = c.g, b = c.b;
   float x, y, angle;
@@ -208,14 +208,14 @@ void paint_stroke(void) {
   }
 }
 
-int main(void) {
+int main() {
   srand((unsigned)time(NULL));
 
   // Linen/canvas background
   for (int i = 0; i < HEIGHT * WIDTH; i++) {
-    canvas[i * 3] = 237;
-    canvas[i * 3 + 1] = 232;
-    canvas[i * 3 + 2] = 218;
+    canvas[i].r = 237;
+    canvas[i].g = 232;
+    canvas[i].b = 218;
   }
 
   for (int s = 0; s < N_STROKES; s++) {

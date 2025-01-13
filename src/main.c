@@ -65,7 +65,7 @@ void splatter(float cx, float cy, float spread, Color c, int n) {
 }
 
 void drip(float x, float y, float len, Color c) {
-  float wobble = frange(0.0f, 6.28f);
+  float wobble = frange(0.0f, 2.0f * (float)M_PI);
 
   for (float dy = 0; dy < len; dy += 0.8f) {
     float rad = frange(0.4f, 1.2f) * (1.0f - dy / len * 0.5f);

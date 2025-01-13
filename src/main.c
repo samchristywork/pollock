@@ -26,19 +26,18 @@ Color canvas[HEIGHT * WIDTH];
 float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
 
-void blend_px(int x, int y, uint8_t r, uint8_t g, uint8_t b, float a) {
+void blend_px(int x, int y, Color c, float a) {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
     return;
   }
 
-  Color *c = &canvas[y * WIDTH + x];
-  c->r = (uint8_t)(c->r * (1.0f - a) + r * a);
-  c->g = (uint8_t)(c->g * (1.0f - a) + g * a);
-  c->b = (uint8_t)(c->b * (1.0f - a) + b * a);
+  Color *px = &canvas[y * WIDTH + x];
+  px->r = (uint8_t)(px->r * (1.0f - a) + c.r * a);
+  px->g = (uint8_t)(px->g * (1.0f - a) + c.g * a);
+  px->b = (uint8_t)(px->b * (1.0f - a) + c.b * a);
 }
 
-void stamp(float cx, float cy, float rad, uint8_t r, uint8_t g, uint8_t b,
-           float alpha) {
+void stamp(float cx, float cy, float rad, Color c, float a) {
   int x0 = (int)(cx - rad) - 1, x1 = (int)(cx + rad) + 1;
   int y0 = (int)(cy - rad) - 1, y1 = (int)(cy + rad) + 1;
 
@@ -48,38 +47,35 @@ void stamp(float cx, float cy, float rad, uint8_t r, uint8_t g, uint8_t b,
       float d = sqrtf(dx * dx + dy * dy);
 
       if (d < rad) {
-        float a = alpha * fminf(1.0f, (rad - d) / fmaxf(rad * 0.3f, 1.0f));
-        blend_px(x, y, r, g, b, a);
+        float alpha = a * fminf(1.0f, (rad - d) / fmaxf(rad * 0.3f, 1.0f));
+        blend_px(x, y, c, alpha);
       }
     }
   }
 }
 
-void splatter(float cx, float cy, float spread, uint8_t r, uint8_t g, uint8_t b,
-              int n) {
+void splatter(float cx, float cy, float spread, Color c, int n) {
   for (int i = 0; i < n; i++) {
     float angle = frand() * 2.0f * (float)M_PI;
     float dist = sqrtf(frand()) * spread;
 
     stamp(cx + cosf(angle) * dist, cy + sinf(angle) * dist, frange(0.3f, 2.0f),
-          r, g, b, frange(0.5f, 0.9f));
+          c, frange(0.5f, 0.9f));
   }
 }
 
-void drip(float x, float y, float len, uint8_t r, uint8_t g, uint8_t b) {
+void drip(float x, float y, float len, Color c) {
   float wobble = frange(0.0f, 6.28f);
 
   for (float dy = 0; dy < len; dy += 0.8f) {
     float rad = frange(0.4f, 1.2f) * (1.0f - dy / len * 0.5f);
-    float alpha = frange(0.4f, 0.8f) * (1.0f - dy / len);
-
-    stamp(x + sinf(dy * 0.3f + wobble) * 1.5f, y + dy, rad, r, g, b, alpha);
+    float a = frange(0.4f, 0.8f) * (1.0f - dy / len);
+    stamp(x + sinf(dy * 0.3f + wobble) * 1.5f, y + dy, rad, c, a);
   }
 }
 
 void paint_stroke() {
   Color c = palette[rand() % N_COLORS];
-  uint8_t r = c.r, g = c.g, b = c.b;
   float x, y, angle;
 
   // 65% traversal strokes crossing the canvas, 35% freeform arcs
@@ -145,20 +141,20 @@ void paint_stroke() {
   for (int i = 0; i < steps; i++) {
     float rad = base_rad + sinf(i * 0.04f) * base_rad * 0.4f;
     rad = fmaxf(0.3f, rad);
-    float alpha = frange(0.55f, 0.95f);
+    float a = frange(0.55f, 0.95f);
 
     if (rand() % 60 == 0) {
-      stamp(x, y, rad * frange(2.0f, 4.5f), r, g, b, alpha * 0.5f);
+      stamp(x, y, rad * frange(2.0f, 4.5f), c, a * 0.5f);
     }
 
-    stamp(x, y, rad, r, g, b, alpha);
+    stamp(x, y, rad, c, a);
 
     if (rand() % 25 == 0) {
-      splatter(x, y, frange(8, 30), r, g, b, 2 + rand() % 6);
+      splatter(x, y, frange(8, 30), c, 2 + rand() % 6);
     }
 
     if (rand() % 45 == 0) {
-      drip(x, y, frange(15, 60), r, g, b);
+      drip(x, y, frange(15, 60), c);
     }
 
     // Spring pulls back toward target_angle, oscillators add organic waviness

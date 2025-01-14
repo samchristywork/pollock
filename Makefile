@@ -8,7 +8,7 @@ objects: $(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
 
 build/%.o: src/%.c
 	mkdir -p build
-	$(CC) -c $(CFLAGS) $< -o $@ $(LIBS)
+	$(CC) -c $(CFLAGS) $< -o $@
 
 build/main: objects
 	${CC} build/*.o ${LIBS} -o $@

@@ -4,7 +4,6 @@ LIBS=-lm -lpng
 
 all: build/main
 
-.PHONY: objects
 objects: $(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
 
 build/%.o: src/%.c

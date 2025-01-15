@@ -206,10 +206,13 @@ void paint_stroke() {
 
 int main(int argc, char *argv[]) {
   unsigned seed = (unsigned)time(NULL);
+  const char *output = "pollock.png";
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
       seed = (unsigned)atoi(argv[++i]);
+    } else if (strcmp(argv[i], "--output") == 0 && i + 1 < argc) {
+      output = argv[++i];
     }
   }
 
@@ -234,7 +237,7 @@ int main(int argc, char *argv[]) {
   img.width = WIDTH;
   img.height = HEIGHT;
 
-  if (!png_image_write_to_file(&img, "pollock.png", 0, canvas, 0, NULL)) {
+  if (!png_image_write_to_file(&img, output, 0, canvas, 0, NULL)) {
     fprintf(stderr, "Failed to write PNG: %s\n", img.message);
     return EXIT_FAILURE;
   }

@@ -204,8 +204,17 @@ void paint_stroke() {
   }
 }
 
-int main() {
-  srand((unsigned)time(NULL));
+int main(int argc, char *argv[]) {
+  unsigned seed = (unsigned)time(NULL);
+
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+      seed = (unsigned)atoi(argv[++i]);
+    }
+  }
+
+  srand(seed);
+  printf("seed: %u\n", seed);
 
   // Linen/canvas background
   for (int i = 0; i < HEIGHT * WIDTH; i++) {

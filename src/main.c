@@ -21,12 +21,10 @@ const Color palette[] = {
 };
 #define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
 
-Color canvas[HEIGHT * WIDTH];
-
 float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
 
-void blend_px(int x, int y, Color c, float a) {
+void blend_px(Color *canvas, int x, int y, Color c, float a) {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
     return;
   }
@@ -37,7 +35,7 @@ void blend_px(int x, int y, Color c, float a) {
   px->b = (uint8_t)(px->b * (1.0f - a) + c.b * a);
 }
 
-void stamp(float cx, float cy, float rad, Color c, float a) {
+void stamp(Color *canvas, float cx, float cy, float rad, Color c, float a) {
   int x0 = (int)(cx - rad) - 1, x1 = (int)(cx + rad) + 1;
   int y0 = (int)(cy - rad) - 1, y1 = (int)(cy + rad) + 1;
 
@@ -48,33 +46,33 @@ void stamp(float cx, float cy, float rad, Color c, float a) {
 
       if (d < rad) {
         float alpha = a * fminf(1.0f, (rad - d) / fmaxf(rad * 0.3f, 1.0f));
-        blend_px(x, y, c, alpha);
+        blend_px(canvas, x, y, c, alpha);
       }
     }
   }
 }
 
-void splatter(float cx, float cy, float spread, Color c, int n) {
+void splatter(Color *canvas, float cx, float cy, float spread, Color c, int n) {
   for (int i = 0; i < n; i++) {
     float angle = frand() * 2.0f * (float)M_PI;
     float dist = sqrtf(frand()) * spread;
 
-    stamp(cx + cosf(angle) * dist, cy + sinf(angle) * dist, frange(0.3f, 2.0f),
-          c, frange(0.5f, 0.9f));
+    stamp(canvas, cx + cosf(angle) * dist, cy + sinf(angle) * dist,
+          frange(0.3f, 2.0f), c, frange(0.5f, 0.9f));
   }
 }
 
-void drip(float x, float y, float len, Color c) {
+void drip(Color *canvas, float x, float y, float len, Color c) {
   float wobble = frange(0.0f, 2.0f * (float)M_PI);
 
   for (float dy = 0; dy < len; dy += 0.8f) {
     float rad = frange(0.4f, 1.2f) * (1.0f - dy / len * 0.5f);
     float a = frange(0.4f, 0.8f) * (1.0f - dy / len);
-    stamp(x + sinf(dy * 0.3f + wobble) * 1.5f, y + dy, rad, c, a);
+    stamp(canvas, x + sinf(dy * 0.3f + wobble) * 1.5f, y + dy, rad, c, a);
   }
 }
 
-void paint_stroke() {
+void paint_stroke(Color *canvas) {
   Color c = palette[rand() % N_COLORS];
   float x, y, angle;
 
@@ -144,17 +142,17 @@ void paint_stroke() {
     float a = frange(0.55f, 0.95f);
 
     if (rand() % 60 == 0) {
-      stamp(x, y, rad * frange(2.0f, 4.5f), c, a * 0.5f);
+      stamp(canvas, x, y, rad * frange(2.0f, 4.5f), c, a * 0.5f);
     }
 
-    stamp(x, y, rad, c, a);
+    stamp(canvas, x, y, rad, c, a);
 
     if (rand() % 25 == 0) {
-      splatter(x, y, frange(8, 30), c, 2 + rand() % 6);
+      splatter(canvas, x, y, frange(8, 30), c, 2 + rand() % 6);
     }
 
     if (rand() % 45 == 0) {
-      drip(x, y, frange(15, 60), c);
+      drip(canvas, x, y, frange(15, 60), c);
     }
 
     // Spring pulls back toward target_angle, oscillators add organic waviness
@@ -173,13 +171,7 @@ void paint_stroke() {
     angular_vel += -err * spring_k + a1 * sinf(i * f1 + p1) +
                    a2 * sinf(i * f2 + p2) + frange(-0.003f, 0.003f);
     angular_vel *= 0.82f;
-    if (angular_vel > 0.12f) {
-      angular_vel = 0.12f;
-    }
-
-    if (angular_vel < -0.12f) {
-      angular_vel = -0.12f;
-    }
+    angular_vel = fmaxf(-0.12f, fminf(0.12f, angular_vel));
     angle += angular_vel;
 
     x += cosf(angle) * speed;
@@ -219,6 +211,12 @@ int main(int argc, char *argv[]) {
   srand(seed);
   printf("seed: %u\n", seed);
 
+  Color *canvas = malloc(WIDTH * HEIGHT * sizeof(Color));
+  if (!canvas) {
+    fprintf(stderr, "Failed to allocate canvas\n");
+    return EXIT_FAILURE;
+  }
+
   // Linen/canvas background
   for (int i = 0; i < HEIGHT * WIDTH; i++) {
     canvas[i].r = 237;
@@ -227,7 +225,7 @@ int main(int argc, char *argv[]) {
   }
 
   for (int s = 0; s < N_STROKES; s++) {
-    paint_stroke();
+    paint_stroke(canvas);
   }
 
   png_image img;
@@ -239,8 +237,11 @@ int main(int argc, char *argv[]) {
 
   if (!png_image_write_to_file(&img, output, 0, canvas, 0, NULL)) {
     fprintf(stderr, "Failed to write PNG: %s\n", img.message);
+    free(canvas);
     return EXIT_FAILURE;
   }
 
   png_image_free(&img);
+  free(canvas);
+  return EXIT_SUCCESS;
 }

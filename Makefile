@@ -1,8 +1,13 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -pedantic -g
+RELEASE_CFLAGS=-Wall -Wextra -pedantic -O2
 LIBS=-lm -lpng
 
 all: build/main
+
+.PHONY: release
+release: CFLAGS=$(RELEASE_CFLAGS)
+release: clean build/main
 
 objects: $(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
 

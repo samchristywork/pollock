@@ -72,55 +72,57 @@ void drip(Color *canvas, float x, float y, float len, Color c) {
   }
 }
 
+// 65% traversal strokes entering from an edge, 35% freeform arcs
+static void pick_origin(float *x, float *y, float *angle) {
+  if (rand() % 20 < 13) {
+    float spread = frange(0.3f, 1.1f);
+    switch (rand() % 4) {
+    case 0:
+      *x = frange(-15, 5);
+      *y = frand() * HEIGHT;
+      *angle = frange(-spread, spread);
+      break;
+    case 1:
+      *x = frange(WIDTH - 5, WIDTH + 15);
+      *y = frand() * HEIGHT;
+      *angle = (float)M_PI + frange(-spread, spread);
+      break;
+    case 2:
+      *x = frand() * WIDTH;
+      *y = frange(-15, 5);
+      *angle = (float)M_PI / 2.0f + frange(-spread, spread);
+      break;
+    default:
+      *x = frand() * WIDTH;
+      *y = frange(HEIGHT - 5, HEIGHT + 15);
+      *angle = -(float)M_PI / 2.0f + frange(-spread, spread);
+      break;
+    }
+  } else {
+    *x = frand() * WIDTH;
+    *y = frand() * HEIGHT;
+    *angle = frand() * 2.0f * (float)M_PI;
+  }
+}
+
+// 50% thin, 30% medium, 20% thick
+static float pick_base_rad() {
+  int tier = rand() % 10;
+  if (tier < 5)
+    return frange(0.5f, 1.8f);
+  if (tier < 8)
+    return frange(1.8f, 4.5f);
+  return frange(4.5f, 9.0f);
+}
+
 void paint_stroke(Color *canvas) {
   Color c = palette[rand() % N_COLORS];
   float x, y, angle;
-
-  // 65% traversal strokes crossing the canvas, 35% freeform arcs
-  if (rand() % 20 < 13) {
-    int edge = rand() % 4;
-
-    // Wide angle spread for variety
-    float spread = frange(0.3f, 1.1f);
-    if (edge == 0) {
-      x = frange(-15, 5);
-      y = frand() * HEIGHT;
-      angle = frange(-spread, spread);
-    } else if (edge == 1) {
-      x = frange(WIDTH - 5, WIDTH + 15);
-      y = frand() * HEIGHT;
-      angle = (float)M_PI + frange(-spread, spread);
-    } else if (edge == 2) {
-      x = frand() * WIDTH;
-      y = frange(-15, 5);
-      angle = (float)M_PI / 2.0f + frange(-spread, spread);
-    } else {
-      x = frand() * WIDTH;
-      y = frange(HEIGHT - 5, HEIGHT + 15);
-      angle = -(float)M_PI / 2.0f + frange(-spread, spread);
-    }
-  } else {
-    x = frand() * WIDTH;
-    y = frand() * HEIGHT;
-    angle = frand() * 2.0f * (float)M_PI;
-  }
+  pick_origin(&x, &y, &angle);
 
   float speed = frange(4.0f, 12.0f);
   float angular_vel = 0.0f;
-
-  // Mix of thin drips, medium lines, and occasional thick blobs
-  float base_rad;
-  int tier = rand() % 10;
-  if (tier < 5) {
-    // Thin drips
-    base_rad = frange(0.5f, 1.8f);
-  } else if (tier < 8) {
-    // Medium lines
-    base_rad = frange(1.8f, 4.5f);
-  } else {
-    // Thick blobs
-    base_rad = frange(4.5f, 9.0f);
-  }
+  float base_rad = pick_base_rad();
 
   // sine oscillators for organic waviness
   float f1 = frange(0.002f, 0.008f), p1 = frand() * 2.0f * (float)M_PI,
@@ -235,13 +237,12 @@ int main(int argc, char *argv[]) {
   img.width = WIDTH;
   img.height = HEIGHT;
 
-  if (!png_image_write_to_file(&img, output, 0, canvas, 0, NULL)) {
+  int ok = png_image_write_to_file(&img, output, 0, canvas, 0, NULL);
+  if (!ok) {
     fprintf(stderr, "Failed to write PNG: %s\n", img.message);
-    free(canvas);
-    return EXIT_FAILURE;
   }
 
   png_image_free(&img);
   free(canvas);
-  return EXIT_SUCCESS;
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

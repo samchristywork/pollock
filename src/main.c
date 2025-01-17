@@ -6,8 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#define WIDTH 2400
-#define HEIGHT 1600
 #define N_STROKES 420
 
 typedef struct {
@@ -21,15 +19,18 @@ const Color palette[] = {
 };
 #define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
 
+static int width = 2400;
+static int height = 1600;
+
 float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
 
 void blend_px(Color *canvas, int x, int y, Color c, float a) {
-  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
+  if (x < 0 || x >= width || y < 0 || y >= height) {
     return;
   }
 
-  Color *px = &canvas[y * WIDTH + x];
+  Color *px = &canvas[y * width + x];
   px->r = (uint8_t)(px->r * (1.0f - a) + c.r * a);
   px->g = (uint8_t)(px->g * (1.0f - a) + c.g * a);
   px->b = (uint8_t)(px->b * (1.0f - a) + c.b * a);
@@ -79,28 +80,28 @@ static void pick_origin(float *x, float *y, float *angle) {
     switch (rand() % 4) {
     case 0:
       *x = frange(-15, 5);
-      *y = frand() * HEIGHT;
+      *y = frand() * height;
       *angle = frange(-spread, spread);
       break;
     case 1:
-      *x = frange(WIDTH - 5, WIDTH + 15);
-      *y = frand() * HEIGHT;
+      *x = frange(width - 5, width + 15);
+      *y = frand() * height;
       *angle = (float)M_PI + frange(-spread, spread);
       break;
     case 2:
-      *x = frand() * WIDTH;
+      *x = frand() * width;
       *y = frange(-15, 5);
       *angle = (float)M_PI / 2.0f + frange(-spread, spread);
       break;
     default:
-      *x = frand() * WIDTH;
-      *y = frange(HEIGHT - 5, HEIGHT + 15);
+      *x = frand() * width;
+      *y = frange(height - 5, height + 15);
       *angle = -(float)M_PI / 2.0f + frange(-spread, spread);
       break;
     }
   } else {
-    *x = frand() * WIDTH;
-    *y = frand() * HEIGHT;
+    *x = frand() * width;
+    *y = frand() * height;
     *angle = frand() * 2.0f * (float)M_PI;
   }
 }
@@ -135,7 +136,7 @@ void paint_stroke(Color *canvas) {
   float spring_k = frange(0.002f, 0.030f);
 
   // Steps sized to cross the canvas roughly 1–2 times
-  float diag = sqrtf(WIDTH * WIDTH + HEIGHT * HEIGHT);
+  float diag = sqrtf((float)(width * width + height * height));
   int steps = (int)(diag / speed * frange(0.8f, 2.2f));
 
   for (int i = 0; i < steps; i++) {
@@ -181,19 +182,19 @@ void paint_stroke(Color *canvas) {
 
     // Wrap so strokes can re-enter from the opposite edge
     if (x < -100) {
-      x += WIDTH + 200;
+      x += width + 200;
     }
 
-    if (x > WIDTH + 100) {
-      x -= WIDTH + 200;
+    if (x > width + 100) {
+      x -= width + 200;
     }
 
     if (y < -100) {
-      y += HEIGHT + 200;
+      y += height + 200;
     }
 
-    if (y > HEIGHT + 100) {
-      y -= HEIGHT + 200;
+    if (y > height + 100) {
+      y -= height + 200;
     }
   }
 }
@@ -207,20 +208,24 @@ int main(int argc, char *argv[]) {
       seed = (unsigned)atoi(argv[++i]);
     } else if (strcmp(argv[i], "--output") == 0 && i + 1 < argc) {
       output = argv[++i];
+    } else if (strcmp(argv[i], "--width") == 0 && i + 1 < argc) {
+      width = atoi(argv[++i]);
+    } else if (strcmp(argv[i], "--height") == 0 && i + 1 < argc) {
+      height = atoi(argv[++i]);
     }
   }
 
   srand(seed);
   printf("seed: %u\n", seed);
 
-  Color *canvas = malloc(WIDTH * HEIGHT * sizeof(Color));
+  Color *canvas = malloc(width * height * sizeof(Color));
   if (!canvas) {
     fprintf(stderr, "Failed to allocate canvas\n");
     return EXIT_FAILURE;
   }
 
   // Linen/canvas background
-  for (int i = 0; i < HEIGHT * WIDTH; i++) {
+  for (int i = 0; i < height * width; i++) {
     canvas[i].r = 237;
     canvas[i].g = 232;
     canvas[i].b = 218;
@@ -234,8 +239,8 @@ int main(int argc, char *argv[]) {
   memset(&img, 0, sizeof img);
   img.version = PNG_IMAGE_VERSION;
   img.format = PNG_FORMAT_RGB;
-  img.width = WIDTH;
-  img.height = HEIGHT;
+  img.width = width;
+  img.height = height;
 
   int ok = png_image_write_to_file(&img, output, 0, canvas, 0, NULL);
   if (!ok) {

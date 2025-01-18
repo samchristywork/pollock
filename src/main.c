@@ -201,6 +201,7 @@ void paint_stroke(Color *canvas) {
 int main(int argc, char *argv[]) {
   unsigned seed = (unsigned)time(NULL);
   const char *output = "pollock.png";
+  Color bg = {237, 232, 218};
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
@@ -213,6 +214,11 @@ int main(int argc, char *argv[]) {
       height = atoi(argv[++i]);
     } else if (strcmp(argv[i], "--strokes") == 0 && i + 1 < argc) {
       n_strokes = atoi(argv[++i]);
+    } else if (strcmp(argv[i], "--background") == 0 && i + 1 < argc) {
+      unsigned int r, g, b;
+      if (sscanf(argv[++i], "%u,%u,%u", &r, &g, &b) == 3) {
+        bg = (Color){r & 0xff, g & 0xff, b & 0xff};
+      }
     }
   }
 
@@ -225,11 +231,8 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  // Linen/canvas background
   for (int i = 0; i < height * width; i++) {
-    canvas[i].r = 237;
-    canvas[i].g = 232;
-    canvas[i].b = 218;
+    canvas[i] = bg;
   }
 
   for (int s = 0; s < n_strokes; s++) {

@@ -6,8 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#define N_STROKES 420
-
 typedef struct {
   uint8_t r, g, b;
 } Color;
@@ -19,8 +17,9 @@ const Color palette[] = {
 };
 #define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
 
-static int width = 2400;
-static int height = 1600;
+int width = 2400;
+int height = 1600;
+int n_strokes = 420;
 
 float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
@@ -74,7 +73,7 @@ void drip(Color *canvas, float x, float y, float len, Color c) {
 }
 
 // 65% traversal strokes entering from an edge, 35% freeform arcs
-static void pick_origin(float *x, float *y, float *angle) {
+void pick_origin(float *x, float *y, float *angle) {
   if (rand() % 20 < 13) {
     float spread = frange(0.3f, 1.1f);
     switch (rand() % 4) {
@@ -107,7 +106,7 @@ static void pick_origin(float *x, float *y, float *angle) {
 }
 
 // 50% thin, 30% medium, 20% thick
-static float pick_base_rad() {
+float pick_base_rad() {
   int tier = rand() % 10;
   if (tier < 5)
     return frange(0.5f, 1.8f);
@@ -212,6 +211,8 @@ int main(int argc, char *argv[]) {
       width = atoi(argv[++i]);
     } else if (strcmp(argv[i], "--height") == 0 && i + 1 < argc) {
       height = atoi(argv[++i]);
+    } else if (strcmp(argv[i], "--strokes") == 0 && i + 1 < argc) {
+      n_strokes = atoi(argv[++i]);
     }
   }
 
@@ -231,7 +232,7 @@ int main(int argc, char *argv[]) {
     canvas[i].b = 218;
   }
 
-  for (int s = 0; s < N_STROKES; s++) {
+  for (int s = 0; s < n_strokes; s++) {
     paint_stroke(canvas);
   }
 

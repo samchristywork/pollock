@@ -204,7 +204,20 @@ int main(int argc, char *argv[]) {
   Color bg = {237, 232, 218};
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+    if (strcmp(argv[i], "--help") == 0) {
+      printf("Usage: %s [options]\n"
+             "Generate a Pollock-style drip painting as a PNG.\n\n"
+             "Options:\n"
+             "  --seed <N>            Random seed (default: time-based)\n"
+             "  --output <file>       Output PNG path (default: pollock.png)\n"
+             "  --width <N>           Canvas width in pixels (default: 2400)\n"
+             "  --height <N>          Canvas height in pixels (default: 1600)\n"
+             "  --strokes <N>         Number of paint strokes (default: 420)\n"
+             "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
+             "  --help                Show this help and exit\n",
+             argv[0]);
+      return EXIT_SUCCESS;
+    } else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
       seed = (unsigned)atoi(argv[++i]);
     } else if (strcmp(argv[i], "--output") == 0 && i + 1 < argc) {
       output = argv[++i];

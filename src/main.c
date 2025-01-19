@@ -135,7 +135,7 @@ void paint_stroke(Color *canvas) {
   float spring_k = frange(0.002f, 0.030f);
 
   // Steps sized to cross the canvas roughly 1–2 times
-  float diag = sqrtf((float)(width * width + height * height));
+  float diag = sqrtf((float)width * width + (float)height * height);
   int steps = (int)(diag / speed * frange(0.8f, 2.2f));
 
   for (int i = 0; i < steps; i++) {
@@ -205,33 +205,94 @@ int main(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
-      printf("Usage: %s [options]\n"
-             "Generate a Pollock-style drip painting as a PNG.\n\n"
-             "Options:\n"
-             "  --seed <N>            Random seed (default: time-based)\n"
-             "  --output <file>       Output PNG path (default: pollock.png)\n"
-             "  --width <N>           Canvas width in pixels (default: 2400)\n"
-             "  --height <N>          Canvas height in pixels (default: 1600)\n"
-             "  --strokes <N>         Number of paint strokes (default: 420)\n"
-             "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
-             "  --help                Show this help and exit\n",
-             argv[0]);
+      printf(
+          "Usage: %s [options]\n"
+          "Generate a Pollock-style drip painting as a PNG.\n\n"
+          "Options:\n"
+          "  --seed <N>            Random seed (default: time-based)\n"
+          "  --output <file>       Output PNG path (default: pollock.png)\n"
+          "  --width <N>           Canvas width in pixels (default: 2400)\n"
+          "  --height <N>          Canvas height in pixels (default: 1600)\n"
+          "  --strokes <N>         Number of paint strokes (default: 420)\n"
+          "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
+          "  --help                Show this help and exit\n",
+          argv[0]);
       return EXIT_SUCCESS;
-    } else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
-      seed = (unsigned)atoi(argv[++i]);
-    } else if (strcmp(argv[i], "--output") == 0 && i + 1 < argc) {
-      output = argv[++i];
-    } else if (strcmp(argv[i], "--width") == 0 && i + 1 < argc) {
-      width = atoi(argv[++i]);
-    } else if (strcmp(argv[i], "--height") == 0 && i + 1 < argc) {
-      height = atoi(argv[++i]);
-    } else if (strcmp(argv[i], "--strokes") == 0 && i + 1 < argc) {
-      n_strokes = atoi(argv[++i]);
-    } else if (strcmp(argv[i], "--background") == 0 && i + 1 < argc) {
-      unsigned int r, g, b;
-      if (sscanf(argv[++i], "%u,%u,%u", &r, &g, &b) == 3) {
-        bg = (Color){r & 0xff, g & 0xff, b & 0xff};
+    } else if (strcmp(argv[i], "--seed") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --seed\n");
+        return EXIT_FAILURE;
       }
+      char *end;
+      long v = strtol(argv[++i], &end, 10);
+      if (end == argv[i] || *end != '\0') {
+        fprintf(stderr, "Invalid integer for --seed: %s\n", argv[i]);
+        return EXIT_FAILURE;
+      }
+      seed = (unsigned)v;
+    } else if (strcmp(argv[i], "--output") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --output\n");
+        return EXIT_FAILURE;
+      }
+      output = argv[++i];
+    } else if (strcmp(argv[i], "--width") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --width\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      long v = strtol(argv[++i], &end, 10);
+      if (end == argv[i] || *end != '\0' || v <= 0) {
+        fprintf(stderr, "Invalid positive integer for --width: %s\n", argv[i]);
+        return EXIT_FAILURE;
+      }
+      width = (int)v;
+    } else if (strcmp(argv[i], "--height") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --height\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      long v = strtol(argv[++i], &end, 10);
+      if (end == argv[i] || *end != '\0' || v <= 0) {
+        fprintf(stderr, "Invalid positive integer for --height: %s\n", argv[i]);
+        return EXIT_FAILURE;
+      }
+      height = (int)v;
+    } else if (strcmp(argv[i], "--strokes") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --strokes\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      long v = strtol(argv[++i], &end, 10);
+      if (end == argv[i] || *end != '\0' || v <= 0) {
+        fprintf(stderr, "Invalid positive integer for --strokes: %s\n",
+                argv[i]);
+        return EXIT_FAILURE;
+      }
+      n_strokes = (int)v;
+    } else if (strcmp(argv[i], "--background") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --background\n");
+        return EXIT_FAILURE;
+      }
+      unsigned int r, g, b;
+      if (sscanf(argv[++i], "%u,%u,%u", &r, &g, &b) != 3) {
+        fprintf(stderr, "Invalid color for --background: %s (expected R,G,B)\n",
+                argv[i]);
+        return EXIT_FAILURE;
+      }
+      if (r > 255 || g > 255 || b > 255) {
+        fprintf(stderr, "Color components must be 0-255 for --background\n");
+        return EXIT_FAILURE;
+      }
+      bg = (Color){(uint8_t)r, (uint8_t)g, (uint8_t)b};
+    } else {
+      fprintf(stderr, "Unknown option: %s\n", argv[i]);
+      fprintf(stderr, "Run '%s --help' for usage.\n", argv[0]);
+      return EXIT_FAILURE;
     }
   }
 

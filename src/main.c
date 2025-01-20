@@ -15,7 +15,8 @@ static const Color default_palette[] = {
     {242, 238, 228}, {210, 158, 18},  {140, 28, 22},
     {25, 55, 100},   {148, 140, 130}, {88, 55, 28},
 };
-#define N_DEFAULT_COLORS ((int)(sizeof(default_palette) / sizeof(default_palette[0])))
+#define N_DEFAULT_COLORS                                                       \
+  ((int)(sizeof(default_palette) / sizeof(default_palette[0])))
 
 const Color *palette = default_palette;
 int n_colors = N_DEFAULT_COLORS;
@@ -23,6 +24,8 @@ int n_colors = N_DEFAULT_COLORS;
 int width = 2400;
 int height = 1600;
 int n_strokes = 420;
+float splatter_prob = 1.0f / 25.0f;
+float drip_prob = 1.0f / 45.0f;
 
 float frand() { return rand() / (float)RAND_MAX; }
 float frange(float lo, float hi) { return lo + frand() * (hi - lo); }
@@ -136,14 +139,18 @@ static Color *load_palette(const char *path, int *out_n) {
     int truncated = (len == sizeof(line) - 1 && line[len - 1] != '\n');
     if (truncated) {
       int ch;
-      while ((ch = fgetc(f)) != '\n' && ch != EOF);
+      while ((ch = fgetc(f)) != '\n' && ch != EOF)
+        ;
     }
     char *p = line;
-    while (*p == ' ' || *p == '\t') p++;
-    if (*p == '\n' || *p == '\0' || *p == '#') continue;
+    while (*p == ' ' || *p == '\t')
+      p++;
+    if (*p == '\n' || *p == '\0' || *p == '#')
+      continue;
 
     unsigned int r, g, b;
-    if (sscanf(p, "%u,%u,%u", &r, &g, &b) != 3 || r > 255 || g > 255 || b > 255) {
+    if (sscanf(p, "%u,%u,%u", &r, &g, &b) != 3 || r > 255 || g > 255 ||
+        b > 255) {
       fprintf(stderr, "Invalid color on line %d of %s: %s", lineno, path, line);
       fclose(f);
       return NULL;
@@ -207,11 +214,11 @@ void paint_stroke(Color *canvas) {
 
     stamp(canvas, x, y, rad, c, a);
 
-    if (rand() % 25 == 0) {
+    if (frand() < splatter_prob) {
       splatter(canvas, x, y, frange(8, 30), c, 2 + rand() % 6);
     }
 
-    if (rand() % 45 == 0) {
+    if (frand() < drip_prob) {
       drip(canvas, x, y, frange(15, 60), c);
     }
 
@@ -271,16 +278,21 @@ int main(int argc, char *argv[]) {
           "Usage: %s [options]\n"
           "Generate a Pollock-style drip painting as a PNG.\n\n"
           "Options:\n"
-          "  --seed <N>            Random seed (default: time-based)\n"
-          "  --output <file>       Output PNG path (default: pollock.png)\n"
-          "  --width <N>           Canvas width in pixels (default: 2400)\n"
-          "  --height <N>          Canvas height in pixels (default: 1600)\n"
-          "  --strokes <N>         Number of paint strokes (default: 420)\n"
-          "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
-          "  --palette <file>      Load colours from file (one R,G,B per line)\n"
-          "  --color <R,G,B>       Append a colour (repeatable)\n"
-          "  --quiet               Suppress seed output\n"
-          "  --help                Show this help and exit\n",
+          "  --seed <N>              Random seed (default: time-based)\n"
+          "  --output <file>         Output PNG path (default: pollock.png)\n"
+          "  --width <N>             Canvas width in pixels (default: 2400)\n"
+          "  --height <N>            Canvas height in pixels (default: 1600)\n"
+          "  --strokes <N>           Number of paint strokes (default: 420)\n"
+          "  --background <R,G,B>    Background colour (default: 237,232,218)\n"
+          "  --palette <file>        Load colours from file (one R,G,B per "
+          "line)\n"
+          "  --color <R,G,B>         Append a colour (repeatable)\n"
+          "  --splatter-density <F>  Splatter probability per step 0-1 "
+          "(default: 0.04)\n"
+          "  --drip-density <F>      Drip probability per step 0-1 (default: "
+          "0.022)\n"
+          "  --quiet                 Suppress seed output\n"
+          "  --help                  Show this help and exit\n",
           argv[0]);
       return EXIT_SUCCESS;
     } else if (strcmp(argv[i], "--seed") == 0) {
@@ -364,6 +376,34 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       palette = loaded_palette;
+    } else if (strcmp(argv[i], "--splatter-density") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --splatter-density\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      float v = strtof(argv[++i], &end);
+      if (end == argv[i] || *end != '\0' || v < 0.0f || v > 1.0f) {
+        fprintf(stderr,
+                "Invalid value for --splatter-density: %s (expected 0.0-1.0)\n",
+                argv[i]);
+        return EXIT_FAILURE;
+      }
+      splatter_prob = v;
+    } else if (strcmp(argv[i], "--drip-density") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --drip-density\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      float v = strtof(argv[++i], &end);
+      if (end == argv[i] || *end != '\0' || v < 0.0f || v > 1.0f) {
+        fprintf(stderr,
+                "Invalid value for --drip-density: %s (expected 0.0-1.0)\n",
+                argv[i]);
+        return EXIT_FAILURE;
+      }
+      drip_prob = v;
     } else if (strcmp(argv[i], "--color") == 0) {
       if (i + 1 >= argc) {
         fprintf(stderr, "Missing argument for --color\n");

@@ -262,6 +262,8 @@ int main(int argc, char *argv[]) {
   Color bg = {237, 232, 218};
   int quiet = 0;
   Color *loaded_palette = NULL;
+  Color extra_colors[256];
+  int n_extra = 0;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
@@ -276,6 +278,7 @@ int main(int argc, char *argv[]) {
           "  --strokes <N>         Number of paint strokes (default: 420)\n"
           "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
           "  --palette <file>      Load colours from file (one R,G,B per line)\n"
+          "  --color <R,G,B>       Append a colour (repeatable)\n"
           "  --quiet               Suppress seed output\n"
           "  --help                Show this help and exit\n",
           argv[0]);
@@ -361,6 +364,26 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       palette = loaded_palette;
+    } else if (strcmp(argv[i], "--color") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --color\n");
+        return EXIT_FAILURE;
+      }
+      if (n_extra >= 256) {
+        fprintf(stderr, "--color limit of 256 entries exceeded\n");
+        return EXIT_FAILURE;
+      }
+      unsigned int r, g, b;
+      if (sscanf(argv[++i], "%u,%u,%u", &r, &g, &b) != 3) {
+        fprintf(stderr, "Invalid color for --color: %s (expected R,G,B)\n",
+                argv[i]);
+        return EXIT_FAILURE;
+      }
+      if (r > 255 || g > 255 || b > 255) {
+        fprintf(stderr, "Color components must be 0-255 for --color\n");
+        return EXIT_FAILURE;
+      }
+      extra_colors[n_extra++] = (Color){(uint8_t)r, (uint8_t)g, (uint8_t)b};
     } else if (strcmp(argv[i], "--quiet") == 0) {
       quiet = 1;
     } else {
@@ -368,6 +391,22 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Run '%s --help' for usage.\n", argv[0]);
       return EXIT_FAILURE;
     }
+  }
+
+  if (n_extra > 0) {
+    int total = n_colors + n_extra;
+    Color *merged = malloc(total * sizeof(Color));
+    if (!merged) {
+      fprintf(stderr, "Failed to allocate palette\n");
+      free(loaded_palette);
+      return EXIT_FAILURE;
+    }
+    memcpy(merged, palette, n_colors * sizeof(Color));
+    memcpy(merged + n_colors, extra_colors, n_extra * sizeof(Color));
+    free(loaded_palette);
+    loaded_palette = merged;
+    palette = merged;
+    n_colors = total;
   }
 
   srand(seed);

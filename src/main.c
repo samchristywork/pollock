@@ -10,12 +10,15 @@ typedef struct {
   uint8_t r, g, b;
 } Color;
 
-const Color palette[] = {
+static const Color default_palette[] = {
     {20, 16, 12},    {20, 16, 12},    {20, 16, 12},
     {242, 238, 228}, {210, 158, 18},  {140, 28, 22},
     {25, 55, 100},   {148, 140, 130}, {88, 55, 28},
 };
-#define N_COLORS ((int)(sizeof(palette) / sizeof(palette[0])))
+#define N_DEFAULT_COLORS ((int)(sizeof(default_palette) / sizeof(default_palette[0])))
+
+const Color *palette = default_palette;
+int n_colors = N_DEFAULT_COLORS;
 
 int width = 2400;
 int height = 1600;
@@ -115,8 +118,63 @@ float pick_base_rad() {
   return frange(4.5f, 9.0f);
 }
 
+static Color *load_palette(const char *path, int *out_n) {
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    fprintf(stderr, "Cannot open palette file: %s\n", path);
+    return NULL;
+  }
+
+  Color buf[256];
+  int n = 0;
+  char line[64];
+  int lineno = 0;
+
+  while (fgets(line, sizeof(line), f)) {
+    lineno++;
+    size_t len = strlen(line);
+    int truncated = (len == sizeof(line) - 1 && line[len - 1] != '\n');
+    if (truncated) {
+      int ch;
+      while ((ch = fgetc(f)) != '\n' && ch != EOF);
+    }
+    char *p = line;
+    while (*p == ' ' || *p == '\t') p++;
+    if (*p == '\n' || *p == '\0' || *p == '#') continue;
+
+    unsigned int r, g, b;
+    if (sscanf(p, "%u,%u,%u", &r, &g, &b) != 3 || r > 255 || g > 255 || b > 255) {
+      fprintf(stderr, "Invalid color on line %d of %s: %s", lineno, path, line);
+      fclose(f);
+      return NULL;
+    }
+    if (n >= 256) {
+      fprintf(stderr, "Palette file exceeds 256 colors\n");
+      fclose(f);
+      return NULL;
+    }
+    buf[n++] = (Color){(uint8_t)r, (uint8_t)g, (uint8_t)b};
+  }
+
+  fclose(f);
+
+  if (n == 0) {
+    fprintf(stderr, "No valid colors found in palette file: %s\n", path);
+    return NULL;
+  }
+
+  Color *colors = malloc(n * sizeof(Color));
+  if (!colors) {
+    fprintf(stderr, "Failed to allocate palette\n");
+    return NULL;
+  }
+  memcpy(colors, buf, n * sizeof(Color));
+  *out_n = n;
+  return colors;
+}
+
 void paint_stroke(Color *canvas) {
-  Color c = palette[rand() % N_COLORS];
+  Color c = palette[rand() % n_colors];
   float x, y, angle;
   pick_origin(&x, &y, &angle);
 
@@ -203,6 +261,7 @@ int main(int argc, char *argv[]) {
   const char *output = "pollock.png";
   Color bg = {237, 232, 218};
   int quiet = 0;
+  Color *loaded_palette = NULL;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
@@ -216,6 +275,7 @@ int main(int argc, char *argv[]) {
           "  --height <N>          Canvas height in pixels (default: 1600)\n"
           "  --strokes <N>         Number of paint strokes (default: 420)\n"
           "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
+          "  --palette <file>      Load colours from file (one R,G,B per line)\n"
           "  --quiet               Suppress seed output\n"
           "  --help                Show this help and exit\n",
           argv[0]);
@@ -291,6 +351,16 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       bg = (Color){(uint8_t)r, (uint8_t)g, (uint8_t)b};
+    } else if (strcmp(argv[i], "--palette") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --palette\n");
+        return EXIT_FAILURE;
+      }
+      loaded_palette = load_palette(argv[++i], &n_colors);
+      if (!loaded_palette) {
+        return EXIT_FAILURE;
+      }
+      palette = loaded_palette;
     } else if (strcmp(argv[i], "--quiet") == 0) {
       quiet = 1;
     } else {
@@ -333,5 +403,6 @@ int main(int argc, char *argv[]) {
 
   png_image_free(&img);
   free(canvas);
+  free(loaded_palette);
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

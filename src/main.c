@@ -202,6 +202,7 @@ int main(int argc, char *argv[]) {
   unsigned seed = (unsigned)time(NULL);
   const char *output = "pollock.png";
   Color bg = {237, 232, 218};
+  int quiet = 0;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
@@ -215,6 +216,7 @@ int main(int argc, char *argv[]) {
           "  --height <N>          Canvas height in pixels (default: 1600)\n"
           "  --strokes <N>         Number of paint strokes (default: 420)\n"
           "  --background <R,G,B>  Background colour (default: 237,232,218)\n"
+          "  --quiet               Suppress seed output\n"
           "  --help                Show this help and exit\n",
           argv[0]);
       return EXIT_SUCCESS;
@@ -289,6 +291,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       bg = (Color){(uint8_t)r, (uint8_t)g, (uint8_t)b};
+    } else if (strcmp(argv[i], "--quiet") == 0) {
+      quiet = 1;
     } else {
       fprintf(stderr, "Unknown option: %s\n", argv[i]);
       fprintf(stderr, "Run '%s --help' for usage.\n", argv[0]);
@@ -297,7 +301,9 @@ int main(int argc, char *argv[]) {
   }
 
   srand(seed);
-  printf("seed: %u\n", seed);
+  if (!quiet) {
+    printf("seed: %u\n", seed);
+  }
 
   Color *canvas = malloc(width * height * sizeof(Color));
   if (!canvas) {

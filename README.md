@@ -12,6 +12,10 @@ organic waviness, producing results that vary from tight linear sweeps to loose
 arcing curves. Splatters and drips are applied stochastically along each stroke
 path. The output is written as a PNG file.
 
+<p align="center">
+  <img src="./assets/screenshot.png" />
+</p>
+
 ## Features
 
 ## Usage

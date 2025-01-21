@@ -283,6 +283,7 @@ int main(int argc, char *argv[]) {
           "  --output <file>         Output PNG path (default: pollock.png)\n"
           "  --width <N>             Canvas width in pixels (default: 2400)\n"
           "  --height <N>            Canvas height in pixels (default: 1600)\n"
+          "  --scale <F>             Scale both dimensions from defaults (e.g. 0.5)\n"
           "  --strokes <N>           Number of paint strokes (default: 420)\n"
           "  --background <R,G,B>    Background colour (default: 237,232,218)\n"
           "  --palette <file>        Load colours from file (one R,G,B per "
@@ -338,6 +339,23 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       height = (int)v;
+    } else if (strcmp(argv[i], "--scale") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --scale\n");
+        return EXIT_FAILURE;
+      }
+      char *end;
+      float v = strtof(argv[++i], &end);
+      if (end == argv[i] || *end != '\0' || v <= 0.0f) {
+        fprintf(stderr, "Invalid positive number for --scale: %s\n", argv[i]);
+        return EXIT_FAILURE;
+      }
+      width = (int)(2400 * v);
+      height = (int)(1600 * v);
+      if (width < 1 || height < 1) {
+        fprintf(stderr, "--scale %s produces a zero-size canvas\n", argv[i]);
+        return EXIT_FAILURE;
+      }
     } else if (strcmp(argv[i], "--strokes") == 0) {
       if (i + 1 >= argc) {
         fprintf(stderr, "Missing argument for --strokes\n");

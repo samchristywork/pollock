@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct {
   uint8_t r, g, b;
@@ -464,8 +465,19 @@ int main(int argc, char *argv[]) {
     canvas[i] = bg;
   }
 
+  int tty = isatty(fileno(stderr));
   for (int s = 0; s < n_strokes; s++) {
+    if (tty) {
+      fprintf(stderr, "\rstroke %d/%d", s + 1, n_strokes);
+      fflush(stderr);
+    } else if ((s + 1) * 10 / n_strokes != s * 10 / n_strokes) {
+      fprintf(stderr, "stroke %d/%d (%d%%)\n", s + 1, n_strokes,
+              (s + 1) * 100 / n_strokes);
+    }
     paint_stroke(canvas);
+  }
+  if (tty) {
+    fprintf(stderr, "\n");
   }
 
   png_image img;

@@ -2,6 +2,16 @@
 
 ## Overview
 
+Pollock is a command-line tool that generates procedural drip paintings in the
+style of Jackson Pollock. Written in C using libpng, it simulates gestural
+brushwork through layered paint strokes, splatter, and drips across a
+configurable canvas.
+
+Each stroke follows a spring-driven trajectory with sine-wave oscillators for
+organic waviness, producing results that vary from tight linear sweeps to loose
+arcing curves. Splatters and drips are applied stochastically along each stroke
+path. The output is written as a PNG file.
+
 ## Features
 
 ## Usage

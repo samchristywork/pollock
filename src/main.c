@@ -272,6 +272,8 @@ int main(int argc, char *argv[]) {
   Color *loaded_palette = NULL;
   Color extra_colors[256];
   int n_extra = 0;
+  int explicit_width = 0, explicit_height = 0;
+  float ar_w = 0.0f, ar_h = 0.0f;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
@@ -284,6 +286,7 @@ int main(int argc, char *argv[]) {
           "  --width <N>             Canvas width in pixels (default: 2400)\n"
           "  --height <N>            Canvas height in pixels (default: 1600)\n"
           "  --scale <F>             Scale both dimensions from defaults (e.g. 0.5)\n"
+          "  --aspect-ratio <W:H>    Derive missing dimension (e.g. 16:9)\n"
           "  --strokes <N>           Number of paint strokes (default: 420)\n"
           "  --background <R,G,B>    Background colour (default: 237,232,218)\n"
           "  --palette <file>        Load colours from file (one R,G,B per "
@@ -327,6 +330,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       width = (int)v;
+      explicit_width = 1;
     } else if (strcmp(argv[i], "--height") == 0) {
       if (i + 1 >= argc) {
         fprintf(stderr, "Missing argument for --height\n");
@@ -339,6 +343,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
       }
       height = (int)v;
+      explicit_height = 1;
     } else if (strcmp(argv[i], "--scale") == 0) {
       if (i + 1 >= argc) {
         fprintf(stderr, "Missing argument for --scale\n");
@@ -354,6 +359,19 @@ int main(int argc, char *argv[]) {
       height = (int)(1600 * v);
       if (width < 1 || height < 1) {
         fprintf(stderr, "--scale %s produces a zero-size canvas\n", argv[i]);
+        return EXIT_FAILURE;
+      }
+      explicit_width = explicit_height = 1;
+    } else if (strcmp(argv[i], "--aspect-ratio") == 0) {
+      if (i + 1 >= argc) {
+        fprintf(stderr, "Missing argument for --aspect-ratio\n");
+        return EXIT_FAILURE;
+      }
+      if (sscanf(argv[++i], "%f:%f", &ar_w, &ar_h) != 2 || ar_w <= 0.0f ||
+          ar_h <= 0.0f) {
+        fprintf(stderr,
+                "Invalid aspect ratio: %s (expected W:H, e.g. 16:9)\n",
+                argv[i]);
         return EXIT_FAILURE;
       }
     } else if (strcmp(argv[i], "--strokes") == 0) {
@@ -448,6 +466,24 @@ int main(int argc, char *argv[]) {
     } else {
       fprintf(stderr, "Unknown option: %s\n", argv[i]);
       fprintf(stderr, "Run '%s --help' for usage.\n", argv[0]);
+      return EXIT_FAILURE;
+    }
+  }
+
+  if (ar_w > 0.0f) {
+    if (explicit_width && explicit_height) {
+      fprintf(stderr,
+              "--aspect-ratio cannot be combined with both --width and "
+              "--height\n");
+      return EXIT_FAILURE;
+    }
+    if (explicit_height && !explicit_width) {
+      width = (int)roundf(height * ar_w / ar_h);
+    } else {
+      height = (int)roundf(width * ar_h / ar_w);
+    }
+    if (width < 1 || height < 1) {
+      fprintf(stderr, "--aspect-ratio produces a zero-size canvas\n");
       return EXIT_FAILURE;
     }
   }

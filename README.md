@@ -18,6 +18,16 @@ path. The output is written as a PNG file.
 
 ## Features
 
+- Procedural paint stroke simulation with spring-driven paths
+- Splatter and drip effects applied stochastically per stroke
+- Customizable canvas dimensions, stroke count, and color palette
+- Built-in palette files for common color schemes
+- Support for loading custom palettes from plain-text files
+- Per-run random seed for reproducible output
+- Aspect ratio and scale helpers for quick canvas sizing
+- Progress reporting to stderr during generation
+- PNG output via libpng
+
 ## Usage
 
 ## Dependencies

@@ -30,6 +30,27 @@ path. The output is written as a PNG file.
 
 ## Usage
 
+```
+Usage: ./build/main [options]
+Generate a Pollock-style drip painting as a PNG.
+
+Options:
+  --seed <N>              Random seed (default: time-based)
+  --output <file>         Output PNG path (default: pollock.png)
+  --width <N>             Canvas width in pixels (default: 2400)
+  --height <N>            Canvas height in pixels (default: 1600)
+  --scale <F>             Scale both dimensions from defaults (e.g. 0.5)
+  --aspect-ratio <W:H>    Derive missing dimension (e.g. 16:9)
+  --strokes <N>           Number of paint strokes (default: 420)
+  --background <R,G,B>    Background colour (default: 237,232,218)
+  --palette <file>        Load colours from file (one R,G,B per line)
+  --color <R,G,B>         Append a colour (repeatable)
+  --splatter-density <F>  Splatter probability per step 0-1 (default: 0.04)
+  --drip-density <F>      Drip probability per step 0-1 (default: 0.022)
+  --quiet                 Suppress seed output
+  --help                  Show this help and exit
+```
+
 ## Dependencies
 
 ## License
